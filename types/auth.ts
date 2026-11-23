@@ -18,6 +18,7 @@ export interface AuthOperations {
   signOut: () => Promise<void>;
   handleLogin: (e: React.FormEvent) => Promise<void>;
   handleGoogleLogin: () => Promise<void>;
+  handleGitHubLogin: () => Promise<void>;
   handleSignup: () => Promise<void>;
   setEmail: (value: string) => void;
   setPassword: (value: string) => void;

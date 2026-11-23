@@ -7,9 +7,11 @@ import {
   TaskOperations,
   TasksOperations,
 } from "@/types/taskManager";
+import { TaskStep } from "@/lib/taskSteps";
 
 const MAX_FILE_SIZE = 1024 * 1024; // 1MB
 const FUNCTION_ENDPOINT = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/create-task-with-ai`;
+const BREAK_DOWN_ENDPOINT = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/break-down-task`;
 
 interface UseTaskManagerReturn
   extends TaskState,
@@ -168,6 +170,55 @@ export function useTaskManager(taskId?: string): UseTaskManagerReturn {
     }
   };
 
+  // Ask OpenAI for a checklist. Errors go to the caller, which shows a message
+  // and keeps the form open.
+  const breakDownTask = async () => {
+    if (!task) throw new Error("No task found");
+
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    const response = await fetch(BREAK_DOWN_ENDPOINT, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session!.access_token}`,
+      },
+      body: JSON.stringify({
+        task_id: task.task_id,
+        title: task.title,
+        description: task.description,
+      }),
+    });
+
+    const result = await response.json();
+    if (!response.ok) {
+      throw new Error(result.error || "Failed to create steps");
+    }
+
+    // Only take the steps, so unsaved edits in the form are kept.
+    setTask((prev) => (prev ? { ...prev, ai_steps: result.ai_steps } : null));
+  };
+
+  // Save the checklist right away when a step is ticked.
+  const saveSteps = async (steps: TaskStep[]) => {
+    if (!task) throw new Error("No task found");
+
+    const previousSteps = task.ai_steps;
+    setTask((prev) => (prev ? { ...prev, ai_steps: steps } : null));
+
+    const { error } = await supabase
+      .from("tasks")
+      .update({ ai_steps: steps })
+      .eq("task_id", task.task_id);
+
+    if (error) {
+      setTask((prev) => (prev ? { ...prev, ai_steps: previousSteps } : null));
+      throw error;
+    }
+  };
+
   // Task list operations
   const fetchTasks = async () => {
     try {
@@ -286,6 +337,8 @@ export function useTaskManager(taskId?: string): UseTaskManagerReturn {
     saveTask,
     uploadImage,
     removeImage,
+    breakDownTask,
+    saveSteps,
 
     // Task list operations
     createTask,

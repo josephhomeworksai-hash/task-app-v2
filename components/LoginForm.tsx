@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
-import { LogIn, Mail, Lock } from "lucide-react";
+import { Github, LogIn, Mail, Lock } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 const LoginForm = () => {
@@ -10,6 +10,7 @@ const LoginForm = () => {
     password,
     handleLogin,
     handleGoogleLogin,
+    handleGitHubLogin,
     handleSignup,
     setEmail,
     setPassword,
@@ -34,6 +35,14 @@ const LoginForm = () => {
           <Button className="w-full" onClick={handleGoogleLogin}>
             <LogIn className="mr-2 h-4 w-4" />
             Login with Google
+          </Button>
+          <Button
+            className="w-full"
+            variant="outline"
+            onClick={handleGitHubLogin}
+          >
+            <Github className="mr-2 h-4 w-4" />
+            Login with GitHub
           </Button>
           <div className="relative">
             <div className="absolute inset-0 flex items-center">

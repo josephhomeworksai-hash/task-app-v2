@@ -41,12 +41,14 @@ export type Database = {
       }
       tasks: {
         Row: {
+          ai_steps: Json
           completed: boolean | null
           created_at: string | null
           description: string | null
           due_date: string | null
           image_url: string | null
           label: string | null
+          priority: string
           rank: number | null
           task_id: string
           title: string
@@ -54,12 +56,14 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          ai_steps?: Json
           completed?: boolean | null
           created_at?: string | null
           description?: string | null
           due_date?: string | null
           image_url?: string | null
           label?: string | null
+          priority?: string
           rank?: number | null
           task_id?: string
           title: string
@@ -67,12 +71,14 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          ai_steps?: Json
           completed?: boolean | null
           created_at?: string | null
           description?: string | null
           due_date?: string | null
           image_url?: string | null
           label?: string | null
+          priority?: string
           rank?: number | null
           task_id?: string
           title?: string

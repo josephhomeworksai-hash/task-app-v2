@@ -1,5 +1,6 @@
 import { Task } from "./models";
 import { BaseState } from "./auth";
+import { TaskStep } from "@/lib/taskSteps";
 
 export interface TaskState extends BaseState {
   task: Task | null;
@@ -13,6 +14,8 @@ export interface TaskOperations {
   saveTask: (taskToSave?: Task) => Promise<void>;
   uploadImage: (file: File) => Promise<void>;
   removeImage: () => Promise<void>;
+  breakDownTask: () => Promise<void>;
+  saveSteps: (steps: TaskStep[]) => Promise<void>;
 }
 
 export interface TasksState extends BaseState {

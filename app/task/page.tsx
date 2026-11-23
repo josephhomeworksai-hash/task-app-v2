@@ -27,8 +27,11 @@ import {
   ArrowLeft,
   Trash2,
   AlertOctagon,
+  Sparkles,
 } from "lucide-react";
 import { getLabelOptions } from "@/lib/labels";
+import { PRIORITY_OPTIONS } from "@/lib/priorities";
+import { toTaskSteps } from "@/lib/taskSteps";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useSearchParams } from "next/navigation";
@@ -51,11 +54,14 @@ function TaskForm() {
     saveTask,
     uploadImage,
     removeImage,
+    breakDownTask,
+    saveSteps,
     error,
   } = useTaskManager(taskId);
   const { session } = useAuth();
   const { toast } = useToast();
   const [uploading, setUploading] = useState(false);
+  const [breakingDown, setBreakingDown] = useState(false);
 
   const handleImageUpload = async (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
@@ -116,6 +122,40 @@ function TaskForm() {
       toast({
         title: "❌ Remove Failed",
         description: error.message || "Failed to remove image",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleBreakDown = async () => {
+    try {
+      setBreakingDown(true);
+      await breakDownTask();
+      toast({
+        title: "✅ Steps Ready",
+        description: "OpenAI split this task into steps",
+      });
+    } catch (error: any) {
+      toast({
+        title: "❌ AI Error",
+        description: error.message || "Failed to create steps",
+        variant: "destructive",
+      });
+    } finally {
+      setBreakingDown(false);
+    }
+  };
+
+  const handleToggleStep = async (index: number, done: boolean) => {
+    const steps = toTaskSteps(task!.ai_steps).map((step, i) =>
+      i === index ? { ...step, done } : step
+    );
+    try {
+      await saveSteps(steps);
+    } catch (error: any) {
+      toast({
+        title: "❌ Error",
+        description: error.message || "Failed to save step",
         variant: "destructive",
       });
     }
@@ -184,6 +224,8 @@ function TaskForm() {
 
   if (!task) return <div>Loading...</div>;
 
+  const steps = toTaskSteps(task.ai_steps);
+
   return (
     <div>
       <h1 className="text-3xl font-bold mb-6">Task Details</h1>
@@ -230,6 +272,68 @@ function TaskForm() {
               ))}
             </SelectContent>
           </Select>
+        </div>
+        <div className="grid w-full items-center gap-1.5">
+          <Label>Priority</Label>
+          <Select
+            value={task.priority}
+            onValueChange={(value) => updateTask({ priority: value })}
+          >
+            <SelectTrigger className="w-full" aria-label="Priority">
+              <SelectValue placeholder="Select a priority" />
+            </SelectTrigger>
+            <SelectContent>
+              {PRIORITY_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="grid w-full gap-2">
+          <div className="flex items-center justify-between gap-2">
+            <Label>AI Steps</Label>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={handleBreakDown}
+              disabled={breakingDown || !task.title?.trim()}
+            >
+              <Sparkles className="mr-2 h-4 w-4" />
+              {breakingDown
+                ? "Thinking..."
+                : steps.length > 0
+                ? "Regenerate Steps"
+                : "Break into Steps with AI"}
+            </Button>
+          </div>
+          {steps.length > 0 && (
+            <ul className="space-y-2 rounded-md border p-3">
+              {steps.map((step, index) => (
+                <li key={index} className="flex items-start gap-2">
+                  <Checkbox
+                    id={`step-${index}`}
+                    className="mt-0.5"
+                    checked={step.done}
+                    onCheckedChange={(checked) =>
+                      handleToggleStep(index, checked === true)
+                    }
+                  />
+                  <label
+                    htmlFor={`step-${index}`}
+                    className={cn(
+                      "text-sm cursor-pointer",
+                      step.done && "line-through text-muted-foreground"
+                    )}
+                  >
+                    {step.text}
+                  </label>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
         <div className="grid w-full items-center gap-1.5">
           <Label>Due Date</Label>
