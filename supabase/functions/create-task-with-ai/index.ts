@@ -64,27 +64,31 @@ Deno.serve(async (req) => {
 
     if (error) throw error;
 
-    // Initialize OpenAI
-    const openai = new OpenAI({
-      apiKey: OPENAI_API_KEY,
-    });
+    // The task is saved. If the AI label fails, keep the task without a label
+    // instead of reporting that the whole task failed.
+    let task = data;
+    try {
+      // Initialize OpenAI
+      const openai = new OpenAI({
+        apiKey: OPENAI_API_KEY,
+      });
 
-    // The existing labels: the default ones plus every label the user has
-    // already used. Row Level Security limits this to the user's own tasks.
-    const { data: labelRows, error: labelsError } = await supabaseClient
-      .from("tasks")
-      .select("label")
-      .eq("user_id", user.id)
-      .not("label", "is", null);
+      // The existing labels: the default ones plus every label the user has
+      // already used. Row Level Security limits this to the user's own tasks.
+      const { data: labelRows, error: labelsError } = await supabaseClient
+        .from("tasks")
+        .select("label")
+        .eq("user_id", user.id)
+        .not("label", "is", null);
 
-    // If that fails, carry on with just the default labels.
-    if (labelsError) console.error("Error reading labels:", labelsError.message);
-    const existingLabels = existingLabelList(
-      (labelRows ?? []).map((row: { label: string | null }) => row.label)
-    );
+      // If that fails, carry on with just the default labels.
+      if (labelsError) console.error("Error reading labels:", labelsError.message);
+      const existingLabels = existingLabelList(
+        (labelRows ?? []).map((row: { label: string | null }) => row.label)
+      );
 
-    // Get label suggestion from OpenAI
-    const prompt = `You choose a label for a task in a to-do list app.
+      // Get label suggestion from OpenAI
+      const prompt = `You choose a label for a task in a to-do list app.
 
 Task title: "${title}"
 Task description: "${description ?? ""}"
@@ -98,33 +102,39 @@ Rules:
 
 Reply with just the label and nothing else.`;
 
-    const completion = await openai.chat.completions.create({
-      messages: [{ role: "user", content: prompt }],
-      model: OPENAI_MODEL,
-      temperature: 0.3,
-      max_tokens: 16,
-    });
+      const completion = await openai.chat.completions.create({
+        messages: [{ role: "user", content: prompt }],
+        model: OPENAI_MODEL,
+        temperature: 0.3,
+        max_tokens: 16,
+      });
 
-    const suggestedLabel = completion.choices[0].message.content;
+      const suggestedLabel = completion.choices[0].message.content;
 
-    console.log(`✨ AI Suggested Label: ${suggestedLabel}`);
+      console.log(`✨ AI Suggested Label: ${suggestedLabel}`);
 
-    // Check the label: use the existing label if the AI repeated or rephrased
-    // one, and no label (null) if the reply is not a valid label.
-    const label = chooseLabel(suggestedLabel, existingLabels);
-    console.log(`🏷️ Label saved: ${label}`);
+      // Check the label: use the existing label if the AI repeated or rephrased
+      // one, and no label (null) if the reply is not a valid label.
+      const label = chooseLabel(suggestedLabel, existingLabels);
+      console.log(`🏷️ Label saved: ${label}`);
 
-    // Update the task with the suggested label
-    const { data: updatedTask, error: updateError } = await supabaseClient
-      .from("tasks")
-      .update({ label })
-      .eq("task_id", data.task_id)
-      .select()
-      .single();
+      // Update the task with the suggested label
+      const { data: updatedTask, error: updateError } = await supabaseClient
+        .from("tasks")
+        .update({ label })
+        .eq("task_id", data.task_id)
+        .select()
+        .single();
 
-    if (updateError) throw updateError;
+      if (updateError) throw updateError;
+      task = updatedTask;
+    } catch (labelError) {
+      const reason =
+        (labelError as { message?: string })?.message ?? String(labelError);
+      console.error("AI label failed; task kept without a label:", reason);
+    }
 
-    return new Response(JSON.stringify(updatedTask), {
+    return new Response(JSON.stringify(task), {
       headers: {
         "Content-Type": "application/json",
         "Access-Control-Allow-Origin": "*",

@@ -58,6 +58,15 @@ Deno.serve(async (req) => {
       .single();
     if (taskError) throw taskError;
 
+    // Count this request first: each user gets a monthly number of AI requests.
+    const { data: allowed, error: limitError } = await supabaseClient.rpc(
+      "claim_ai_steps_request"
+    );
+    if (limitError) throw limitError;
+    if (!allowed) {
+      throw new Error("Monthly AI steps limit reached. Try again next month.");
+    }
+
     // Use what is on the screen, even if the user hasn't pressed Save yet.
     const taskTitle = String(title || task.title).slice(0, MAX_TITLE_LENGTH);
     const taskDescription = String(description ?? task.description ?? "").slice(

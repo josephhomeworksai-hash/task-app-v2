@@ -97,6 +97,7 @@ export type Database = {
       }
       usage_tracking: {
         Row: {
+          ai_steps_requests: number
           tasks_created: number | null
           user_id: string
           year_month: string

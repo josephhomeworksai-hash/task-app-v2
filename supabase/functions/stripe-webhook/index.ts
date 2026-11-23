@@ -42,25 +42,27 @@ Deno.serve(async (req) => {
     switch (event.type) {
       case "checkout.session.completed": {
         const session = event.data.object;
-        await supabase
+        const { error } = await supabase
           .from("profiles")
           .update({
             subscription_plan: "premium",
             updated_at: new Date().toISOString(),
           })
           .eq("stripe_customer_id", session.customer);
+        if (error) throw error;
         break;
       }
 
       case "customer.subscription.deleted": {
         const subscription = event.data.object;
-        await supabase
+        const { error } = await supabase
           .from("profiles")
           .update({
             subscription_plan: "free",
             updated_at: new Date().toISOString(),
           })
           .eq("stripe_customer_id", subscription.customer);
+        if (error) throw error;
         break;
       }
     }
@@ -69,6 +71,10 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ received: true }));
   } catch (error) {
     console.error("Error in stripe-webhook:", error.message);
-    return new Response(JSON.stringify({ error: error.message }));
+    // A failure status makes Stripe show the delivery as failed and retry it.
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 });
