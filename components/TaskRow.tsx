@@ -49,7 +49,7 @@ const TaskRow = ({ task, onDelete, onToggleComplete }: TaskRowProps) => {
           }
         />
       </TableCell>
-      <TableCell className="py-2">
+      <TableCell className="py-2 min-w-[6rem]">
         <Link
           href={`/task?id=${task.task_id}`}
           className={[
@@ -62,7 +62,7 @@ const TaskRow = ({ task, onDelete, onToggleComplete }: TaskRowProps) => {
           {task.title}
         </Link>
       </TableCell>
-      <TableCell className="py-2">
+      <TableCell className="hidden sm:table-cell py-2">
         {task.label && (
           <Badge
             variant="outline"
@@ -81,10 +81,10 @@ const TaskRow = ({ task, onDelete, onToggleComplete }: TaskRowProps) => {
           {priority.label}
         </Badge>
       </TableCell>
-      <TableCell className="py-2 whitespace-nowrap">
+      <TableCell className="hidden sm:table-cell py-2 whitespace-nowrap">
         {task.due_date ? formatDate(task.due_date) : ""}
       </TableCell>
-      <TableCell className="text-right py-2">
+      <TableCell className="text-right py-2 whitespace-nowrap">
         <Button variant="ghost" size="icon" asChild className="h-8 w-8">
           <Link href={`/task?id=${task.task_id}`}>
             <Edit className="h-4 w-4" />

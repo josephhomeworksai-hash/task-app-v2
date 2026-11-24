@@ -89,6 +89,12 @@ function TaskForm() {
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: handleImageUpload,
+    onDropRejected: () =>
+      toast({
+        title: "❌ File not supported",
+        description: "Please choose one JPEG or PNG image",
+        variant: "destructive",
+      }),
     accept: {
       "image/jpeg": [],
       "image/png": [],

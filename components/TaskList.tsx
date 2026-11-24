@@ -19,12 +19,19 @@ const TaskList = ({ tasks, onDelete, onToggleComplete }: TaskListProps) => {
     <Table>
       <TableHeader>
         <TableRow className="hover:bg-transparent">
-          <TableHead className="w-[50px] py-2"></TableHead>
+          <TableHead className="w-8 sm:w-[50px] py-2"></TableHead>
           <TableHead className="py-2">Title</TableHead>
-          <TableHead className="w-[100px] py-2">Label</TableHead>
+          {/* Label and due date are hidden on phones to leave room for the title. */}
+          <TableHead className="hidden sm:table-cell w-[100px] py-2">
+            Label
+          </TableHead>
           <TableHead className="w-[90px] py-2">Priority</TableHead>
-          <TableHead className="w-[120px] py-2">Due Date</TableHead>
-          <TableHead className="w-[100px] text-right py-2">Actions</TableHead>
+          <TableHead className="hidden sm:table-cell w-[120px] py-2">
+            Due Date
+          </TableHead>
+          <TableHead className="w-[84px] sm:w-[100px] text-right py-2">
+            Actions
+          </TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>

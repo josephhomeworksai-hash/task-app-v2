@@ -58,7 +58,9 @@ export default function Dashboard() {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Your Tasks</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold whitespace-nowrap">
+          Your Tasks
+        </h1>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button>
