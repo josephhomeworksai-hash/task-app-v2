@@ -16,6 +16,7 @@ export interface TaskOperations {
   removeImage: () => Promise<void>;
   breakDownTask: () => Promise<void>;
   saveSteps: (steps: TaskStep[]) => Promise<void>;
+  savePriority: (priority: string) => Promise<void>;
 }
 
 export interface TasksState extends BaseState {

@@ -1,5 +1,19 @@
 # Task App: Fullstack SaaS Project Tutorial 2025
 
+## HW5 improvements
+
+This copy extends the task app for HW5 (Joseph Benzaquen). It runs on its own
+Supabase project and Vercel website: <https://task-app-v2-gamma.vercel.app>.
+
+- **Task priority.** Each task has a low, medium or high priority, stored in
+  `tasks.priority` and shown on the dashboard.
+- **AI steps.** The `break-down-task` Edge Function asks OpenAI to split a task
+  into a checklist, stored in `tasks.ai_steps`. Each user gets 30 requests a
+  month (`usage_tracking.ai_steps_requests`).
+- **Login with GitHub.** A new OAuth sign-in option through Supabase Auth.
+
+The changes are in migrations `9_`, `90_` and `91_`.
+
 > **About this copy.** This repository is a copy (not a GitHub fork) of
 > [pixegami/task-app](https://github.com/pixegami/task-app) by Pixegami, taken on
 > October 16, 2026 from commit

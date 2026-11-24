@@ -8,8 +8,17 @@ import {
   TasksOperations,
 } from "@/types/taskManager";
 import { TaskStep } from "@/lib/taskSteps";
+import { format } from "date-fns";
 
 const MAX_FILE_SIZE = 1024 * 1024; // 1MB
+
+// A due date is a calendar day. Read the day as written, so it doesn't shift
+// to the day before in time zones behind UTC.
+function parseDueDate(value: string | null): Date | undefined {
+  if (!value) return undefined;
+  const [year, month, day] = value.slice(0, 10).split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
 const FUNCTION_ENDPOINT = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/create-task-with-ai`;
 const BREAK_DOWN_ENDPOINT = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/break-down-task`;
 
@@ -49,7 +58,7 @@ export function useTaskManager(taskId?: string): UseTaskManagerReturn {
 
         if (error) throw error;
         setTask(task);
-        setDate(task.due_date ? new Date(task.due_date) : undefined);
+        setDate(parseDueDate(task.due_date));
       } catch (error: any) {
         console.error(`Error fetching task ID ${taskId}:`, error);
         setError(error.message);
@@ -103,7 +112,8 @@ export function useTaskManager(taskId?: string): UseTaskManagerReturn {
         .from("tasks")
         .update({
           ...taskData,
-          due_date: date?.toISOString().split("T")[0],
+          // null clears a due date that was removed.
+          due_date: date ? format(date, "yyyy-MM-dd") : null,
           updated_at: new Date().toISOString(),
         })
         .eq("task_id", taskData.task_id);
@@ -125,7 +135,8 @@ export function useTaskManager(taskId?: string): UseTaskManagerReturn {
       if (!task) throw new Error("No task found");
 
       const fileExt = file.name.split(".").pop();
-      const fileName = `${task.user_id}/${task.task_id}.${fileExt}`;
+      // A new name for every upload, so browsers never show a cached old image.
+      const fileName = `${task.user_id}/${task.task_id}-${Date.now()}.${fileExt}`;
       const { error: uploadError } = await supabase.storage
         .from("task-attachments")
         .upload(fileName, file, {
@@ -201,6 +212,27 @@ export function useTaskManager(taskId?: string): UseTaskManagerReturn {
     setTask((prev) => (prev ? { ...prev, ai_steps: result.ai_steps } : null));
   };
 
+  // Save the priority right away, like the steps, so it isn't lost if the user
+  // leaves without pressing Save.
+  const savePriority = async (priority: string) => {
+    if (!task) throw new Error("No task found");
+
+    const previousPriority = task.priority;
+    setTask((prev) => (prev ? { ...prev, priority } : null));
+
+    const { error } = await supabase
+      .from("tasks")
+      .update({ priority })
+      .eq("task_id", task.task_id);
+
+    if (error) {
+      setTask((prev) =>
+        prev ? { ...prev, priority: previousPriority } : null
+      );
+      throw error;
+    }
+  };
+
   // Save the checklist right away when a step is ticked.
   const saveSteps = async (steps: TaskStep[]) => {
     if (!task) throw new Error("No task found");
@@ -260,7 +292,9 @@ export function useTaskManager(taskId?: string): UseTaskManagerReturn {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to create task");
+        throw new Error(
+          errorData.error || errorData.message || "Failed to create task"
+        );
       }
 
       const taskData = await response.json();
@@ -278,6 +312,23 @@ export function useTaskManager(taskId?: string): UseTaskManagerReturn {
 
   const deleteTask = async (taskIdToDelete: string) => {
     try {
+      // Supabase no longer lets the database delete stored files, so the
+      // cleanup trigger from migration 3 fails for a task with an image.
+      // Remove the image through the Storage API first, then delete the task.
+      const taskToDelete = tasks.find((t) => t.task_id === taskIdToDelete);
+      if (taskToDelete?.image_url) {
+        const { error: storageError } = await supabase.storage
+          .from("task-attachments")
+          .remove([taskToDelete.image_url]);
+        if (storageError) throw storageError;
+
+        const { error: clearError } = await supabase
+          .from("tasks")
+          .update({ image_url: null })
+          .eq("task_id", taskIdToDelete);
+        if (clearError) throw clearError;
+      }
+
       const { error } = await supabase
         .from("tasks")
         .delete()
@@ -339,6 +390,7 @@ export function useTaskManager(taskId?: string): UseTaskManagerReturn {
     removeImage,
     breakDownTask,
     saveSteps,
+    savePriority,
 
     // Task list operations
     createTask,

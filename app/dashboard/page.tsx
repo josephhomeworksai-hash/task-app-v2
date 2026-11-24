@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import TaskList from "@/components/TaskList";
 import { CreateTaskForm } from "@/components/CreateTaskForm";
 import { PlusCircle, ClipboardList } from "lucide-react";
+import { useToast } from "@/components/hooks/use-toast";
 import {
   Dialog,
   DialogContent,
@@ -19,6 +20,33 @@ export default function Dashboard() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { createTask, refreshTasks, tasks, deleteTask, toggleTaskComplete } =
     useTaskManager();
+  const { toast } = useToast();
+
+  // Show a message when deleting or ticking a task fails, instead of failing
+  // silently.
+  const handleDeleteTask = async (taskId: string) => {
+    try {
+      await deleteTask(taskId);
+    } catch (error: any) {
+      toast({
+        title: "❌ Error",
+        description: error.message || "Failed to delete task",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleToggleComplete = async (taskId: string, completed: boolean) => {
+    try {
+      await toggleTaskComplete(taskId, completed);
+    } catch (error: any) {
+      toast({
+        title: "❌ Error",
+        description: error.message || "Failed to update task",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleCreateTask = async (title: string, description: string) => {
     await createTask(title, description);
@@ -53,8 +81,8 @@ export default function Dashboard() {
         <div className="border rounded-md">
           <TaskList
             tasks={tasks}
-            onDelete={deleteTask}
-            onToggleComplete={toggleTaskComplete}
+            onDelete={handleDeleteTask}
+            onToggleComplete={handleToggleComplete}
           />
         </div>
       ) : (

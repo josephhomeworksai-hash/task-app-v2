@@ -56,12 +56,14 @@ function TaskForm() {
     removeImage,
     breakDownTask,
     saveSteps,
+    savePriority,
     error,
   } = useTaskManager(taskId);
   const { session } = useAuth();
   const { toast } = useToast();
   const [uploading, setUploading] = useState(false);
   const [breakingDown, setBreakingDown] = useState(false);
+  const [confirmReplace, setConfirmReplace] = useState(false);
 
   const handleImageUpload = async (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
@@ -96,6 +98,15 @@ function TaskForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // A task without a title shows as an empty row on the dashboard.
+    if (!task?.title?.trim()) {
+      toast({
+        title: "❌ Title required",
+        description: "Please enter a title before saving",
+        variant: "destructive",
+      });
+      return;
+    }
     try {
       await saveTask();
       toast({
@@ -127,7 +138,27 @@ function TaskForm() {
     }
   };
 
+  const handlePriorityChange = async (priority: string) => {
+    try {
+      await savePriority(priority);
+    } catch (error: any) {
+      toast({
+        title: "❌ Error",
+        description: error.message || "Failed to save priority",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleBreakDown = async () => {
+    // New steps replace the old ones. Ask first if that would lose progress.
+    const hasProgress = toTaskSteps(task!.ai_steps).some((step) => step.done);
+    if (hasProgress && !confirmReplace) {
+      setConfirmReplace(true);
+      return;
+    }
+    setConfirmReplace(false);
+
     try {
       setBreakingDown(true);
       await breakDownTask();
@@ -277,7 +308,7 @@ function TaskForm() {
           <Label>Priority</Label>
           <Select
             value={task.priority}
-            onValueChange={(value) => updateTask({ priority: value })}
+            onValueChange={handlePriorityChange}
           >
             <SelectTrigger className="w-full" aria-label="Priority">
               <SelectValue placeholder="Select a priority" />
@@ -304,6 +335,8 @@ function TaskForm() {
               <Sparkles className="mr-2 h-4 w-4" />
               {breakingDown
                 ? "Thinking..."
+                : confirmReplace
+                ? "Click again to replace steps"
                 : steps.length > 0
                 ? "Regenerate Steps"
                 : "Break into Steps with AI"}
@@ -366,14 +399,15 @@ function TaskForm() {
             {task.image_url ? renderImageDisplay() : renderImageUpload()}
           </div>
         </div>
-        <div className="flex space-x-2 w-full pt-4">
-          <Link href="/dashboard" className="flex-1">
+        {/* Side by side on wide screens, stacked (Save on top) on phones. */}
+        <div className="flex flex-col-reverse gap-2 w-full pt-4 sm:flex-row">
+          <Link href="/dashboard" className="sm:flex-1">
             <Button type="button" variant="outline" className="w-full">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Dashboard
             </Button>
           </Link>
-          <Button type="submit" className="flex-1">
+          <Button type="submit" className="w-full sm:flex-1">
             <Save className="mr-2 h-4 w-4" />
             Save Changes
           </Button>
