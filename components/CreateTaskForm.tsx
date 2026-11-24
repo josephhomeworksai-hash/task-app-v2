@@ -17,9 +17,14 @@ export function CreateTaskForm({ onSubmit }: CreateTaskFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    // A title of only spaces would create a blank row.
+    if (!title.trim()) {
+      setError("Please enter a title");
+      return;
+    }
     setIsSubmitting(true);
     try {
-      await onSubmit(title, description);
+      await onSubmit(title.trim(), description.trim());
       setTitle("");
       setDescription("");
     } catch (err) {
@@ -38,6 +43,7 @@ export function CreateTaskForm({ onSubmit }: CreateTaskFormProps) {
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Enter task title"
+          maxLength={120}
           required
         />
       </div>

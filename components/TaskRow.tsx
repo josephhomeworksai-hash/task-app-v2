@@ -7,6 +7,7 @@ import { Edit, Trash2 } from "lucide-react";
 import { getLabelColors } from "@/lib/labels";
 import { getPriorityOption } from "@/lib/priorities";
 import { Task } from "@/types/models";
+import { useEffect, useState } from "react";
 
 interface TaskRowProps {
   task: Task;
@@ -21,6 +22,23 @@ const TaskRow = ({ task, onDelete, onToggleComplete }: TaskRowProps) => {
 
   const priority = getPriorityOption(task.priority);
 
+  // Deleting can't be undone, so the first click only arms the button.
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  useEffect(() => {
+    if (!confirmDelete) return;
+    const timer = setTimeout(() => setConfirmDelete(false), 3000);
+    return () => clearTimeout(timer);
+  }, [confirmDelete]);
+
+  const handleDeleteClick = () => {
+    if (!confirmDelete) {
+      setConfirmDelete(true);
+      return;
+    }
+    setConfirmDelete(false);
+    onDelete(task.task_id);
+  };
+
   return (
     <TableRow className="hover:bg-muted/50">
       <TableCell className="py-2">
@@ -34,7 +52,12 @@ const TaskRow = ({ task, onDelete, onToggleComplete }: TaskRowProps) => {
       <TableCell className="py-2">
         <Link
           href={`/task?id=${task.task_id}`}
-          className="hover:underline font-medium"
+          className={[
+            // Break long words so a long title can't push the other columns
+            // off the table.
+            "hover:underline font-medium [overflow-wrap:anywhere]",
+            task.completed ? "line-through text-muted-foreground" : "",
+          ].join(" ")}
         >
           {task.title}
         </Link>
@@ -69,13 +92,19 @@ const TaskRow = ({ task, onDelete, onToggleComplete }: TaskRowProps) => {
           </Link>
         </Button>
         <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8"
-          onClick={() => onDelete(task.task_id)}
+          variant={confirmDelete ? "destructive" : "ghost"}
+          size={confirmDelete ? "sm" : "icon"}
+          className={confirmDelete ? "h-8" : "h-8 w-8"}
+          onClick={handleDeleteClick}
         >
-          <Trash2 className="h-4 w-4" />
-          <span className="sr-only">Delete</span>
+          {confirmDelete ? (
+            "Delete?"
+          ) : (
+            <>
+              <Trash2 className="h-4 w-4" />
+              <span className="sr-only">Delete</span>
+            </>
+          )}
         </Button>
       </TableCell>
     </TableRow>

@@ -44,7 +44,7 @@ import { useDropzone } from "react-dropzone";
 
 function TaskForm() {
   const params = useSearchParams();
-  const taskId = params.get("id")!;
+  const taskId = params.get("id") ?? undefined;
   const {
     task,
     date,
@@ -244,11 +244,17 @@ function TaskForm() {
     );
   };
 
-  if (error) {
+  if (error || !taskId) {
     return (
-      <div className="text-center py-8">
-        <AlertOctagon className="mx-auto h-8 w-8 text-gray-500 mb-2" />
-        <div className="text-gray-700 text-sm">{error}</div>
+      <div className="text-center py-8 space-y-4">
+        <AlertOctagon className="mx-auto h-8 w-8 text-gray-500" />
+        <div className="text-gray-700 text-sm">{error || "Task not found"}</div>
+        <Link href="/dashboard">
+          <Button type="button" variant="outline">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Dashboard
+          </Button>
+        </Link>
       </div>
     );
   }
@@ -266,6 +272,7 @@ function TaskForm() {
           <Input
             value={task.title || ""}
             onChange={(e) => updateTask({ title: e.target.value })}
+            maxLength={120}
           />
         </div>
         <div className="grid w-full items-center gap-1.5">

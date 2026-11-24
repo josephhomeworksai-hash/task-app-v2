@@ -54,9 +54,14 @@ export function useTaskManager(taskId?: string): UseTaskManagerReturn {
           .from("tasks")
           .select("*")
           .eq("task_id", taskId)
-          .single();
+          .maybeSingle();
 
-        if (error) throw error;
+        // No row: the task doesn't exist or belongs to someone else.
+        if (error || !task) {
+          if (error) console.error(`Error fetching task ID ${taskId}:`, error);
+          setError("Task not found");
+          return;
+        }
         setTask(task);
         setDate(parseDueDate(task.due_date));
       } catch (error: any) {

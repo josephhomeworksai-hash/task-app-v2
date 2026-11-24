@@ -29,7 +29,11 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { title, description } = await req.json();
+    const body = await req.json();
+    // Check the input here too: the form's checks can be skipped.
+    const title = String(body.title ?? "").trim().slice(0, 120);
+    const description = String(body.description ?? "").trim().slice(0, 2000);
+    if (!title) throw new Error("Please enter a title");
 
     console.log("🔄 Creating task with AI suggestions...");
     const authHeader = req.headers.get("Authorization");

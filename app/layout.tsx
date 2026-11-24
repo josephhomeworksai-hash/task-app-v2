@@ -17,6 +17,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        <title>Task App</title>
+      </head>
       <body
         className={`${inter.className} bg-gradient-to-br from-blue-600 to-violet-600 min-h-screen`}
       >

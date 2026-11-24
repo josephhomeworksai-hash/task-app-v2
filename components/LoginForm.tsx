@@ -92,7 +92,9 @@ const LoginForm = () => {
               <Lock className="absolute right-3 top-3 h-4 w-4 text-gray-400" />
             </div>
             {error && (
-              <div className="text-gray-700 text-sm text-center">{error}</div>
+              <div className="text-red-600 text-sm text-center" role="alert">
+                {error}
+              </div>
             )}
             <Button type="submit" className="w-full">
               <LogIn className="mr-2 h-4 w-4" />

@@ -65,7 +65,23 @@ export function useAuth(): UseAuthReturn {
   // Auth methods
   const signOut = async () => {
     try {
-      await supabase.auth.signOut();
+      const { error } = await supabase.auth.signOut();
+      // If the session was already ended somewhere else, the server refuses
+      // and the session stays in this browser. Remove this browser's copy and
+      // reload, so the user isn't left stuck on an empty page.
+      if (error) {
+        const projectRef = new URL(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!
+        ).hostname.split(".")[0];
+        document.cookie.split("; ").forEach((cookie) => {
+          const name = cookie.split("=")[0];
+          if (name.startsWith(`sb-${projectRef}-auth-token`)) {
+            document.cookie = `${name}=; Max-Age=0; path=/`;
+          }
+        });
+        window.location.assign("/");
+        return;
+      }
       setSession(null);
       setUser(null);
       setIsLoggedIn(false);
